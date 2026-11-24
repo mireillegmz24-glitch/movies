@@ -30,3 +30,57 @@ movies |>
     y = "Count"
   )
 ```
+
+```{r}
+movies_gap <- movies_clean |>
+  filter(tomatoMeter > 0, audienceScore > 0) |>
+  mutate(gap = tomatoMeter - audienceScore)
+
+movies_summary <- movies_gap |>
+  summarize(mean_gap = mean(gap),
+            n = n(),
+            .by = genre) |>
+  filter(n >= 100) |>
+  arrange(mean_gap)
+
+movies_summary |>
+  ggplot(aes(x = mean_gap,
+             y = fct_reorder(genre, mean_gap))) +
+  geom_col() +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Average Critic vs. Audience Score Gap by Genre",
+       subtitle = "Positive = critics rate higher; Negative = audiences rate higher",
+       x = "Mean Gap (Tomatometer − Audience Score)",
+       y = "Genre")
+```
+
+```{r}
+spiderman <- movies |>
+  filter(title %in% c("Spider-Man", "Spider-Man 2", "Spider-Man 3",
+                      "The Amazing Spider-Man", "The Amazing Spider-Man 2",
+                      "Spider-Man: Homecoming", "Spider-Man: Far From Home",
+                      "Spider-Man: No Way Home")) |>
+  mutate(actor = case_when(
+    str_starts(title, "The Amazing") ~ "Andrew Garfield",
+    str_detect(title, ":") ~ "Tom Holland",
+    .default = "Tobey Maguire")) |>
+  arrange(releaseDateTheaters)
+
+spiderman |>
+  mutate(title = fct_inorder(title)) |>
+  pivot_longer(cols = c(tomatoMeter, audienceScore),
+               names_to = "source", values_to = "score") |>
+  mutate(source = if_else(source == "tomatoMeter", "Critics", "Audiences")) |>
+  ggplot(aes(x = title, y = score, color = source, group = source)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  labs(title = "Tom Holland's Spider-Man films score highest with critics and audiences alike",
+       subtitle = "Rotten Tomatoes scores for the eight live-action films, in release order",
+       x = NULL,
+       y = "Score",
+       color = NULL,
+       caption = "Source: Rotten Tomatoes") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom")
+```
